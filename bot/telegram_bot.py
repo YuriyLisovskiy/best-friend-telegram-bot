@@ -38,31 +38,46 @@ class Bot:
 		if len(get_result) > 0:
 			last_update = get_result[-1]
 		else:
-			last_update = get_result[len(get_result)]
+			last_update = None
 		return last_update
 	
-	def start(self):
+	def is_greeting(self, string):
+		return any(word in string for word in self.greetings)
+	
+	def listen(self):
 		new_offset = None
 		today = self.now.day
 		hour = self.now.hour
 		while True:
+			print(True)
 			self.get_updates(new_offset)
 			last_update = self.get_last_update()
-			last_update_id = last_update['update_id']
-			last_chat_text = last_update['message']['text']
-			last_chat_id = last_update['message']['chat']['id']
-			last_chat_name = last_update['message']['chat']['first_name']
-			
-			if last_chat_text.lower() in self.greetings and today == self.now.day and 6 <= hour < 12:
-				self.send_message(last_chat_id, 'Good morning, {}'.format(last_chat_name))
-				today += 1
-			
-			elif last_chat_text.lower() in self.greetings and today == self.now.day and 12 <= hour < 17:
-				self.send_message(last_chat_id, 'Good afternoon, {}'.format(last_chat_name))
-				today += 1
-			
-			elif last_chat_text.lower() in self.greetings and today == self.now.day and 17 <= hour < 23:
-				self.send_message(last_chat_id, 'Good evening, {}'.format(last_chat_name))
-				today += 1
-			
-			new_offset = last_update_id + 1
+			if last_update:
+				last_update_id = last_update['update_id']
+				last_chat_text = last_update['message']['text']
+				last_chat_id = last_update['message']['chat']['id']
+				last_chat_name = last_update['message']['chat']['first_name']
+				
+				if self.is_greeting(last_chat_text.lower()) and today == self.now.day and 6 <= hour < 12:
+					self.send_message(last_chat_id, 'Good morning, {}.'.format(last_chat_name))
+					today += 1
+				
+				elif self.is_greeting(last_chat_text.lower()) and today == self.now.day and 12 <= hour < 17:
+					self.send_message(last_chat_id, 'Good afternoon, {}.'.format(last_chat_name))
+					today += 1
+				
+				elif self.is_greeting(last_chat_text.lower()) and today == self.now.day and 17 <= hour < 23:
+					self.send_message(last_chat_id, 'Good evening, {}.'.format(last_chat_name))
+					today += 1
+					
+				elif self.is_greeting(last_chat_text.lower()) and today == self.now.day and 23 <= hour:
+					self.send_message(last_chat_id, 'Good night, {}.'.format(last_chat_name))
+					today += 1
+					
+				elif today > self.now.day and self.is_greeting(last_chat_text.lower()):
+					self.send_message(last_chat_id, 'Hello again.')
+				
+				else:
+					self.send_message(last_chat_id, 'Sorry, I was created only for greetings.\nSay "Hello", or "Hi".')
+				
+				new_offset = last_update_id + 1

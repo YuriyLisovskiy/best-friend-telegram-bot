@@ -5,6 +5,6 @@ from bot.settings.settings import *
 if __name__ == '__main__':
 	try:
 		bot = Bot(TOKEN)
-		bot.start()
+		bot.listen()
 	except KeyboardInterrupt:
 		exit()
