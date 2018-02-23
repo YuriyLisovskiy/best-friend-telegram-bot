@@ -85,7 +85,7 @@ class Bot:
 					message = 'Sorry, I was created only for greetings.\nSay '
 					for i in range(len(self.greetings) - 1):
 						message += '"' + self.greetings[i] + '", '
-						message += 'or "' + self.greetings[-1] + '".'
+					message += 'or "' + self.greetings[-1] + '".'
 					
 				self.send_message(last_chat_id, message)
 				new_offset = last_update_id + 1
