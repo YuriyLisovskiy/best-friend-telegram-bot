@@ -43,29 +43,25 @@ class Bot:
 	def is_greeting(self, string):
 		return any(word in string for word in self.greetings)
 	
-	def get_greeting(self, receiver, day, hour):
-		result = ''
-		if day == self.now.day and 6 <= hour < 12:
-			result = 'Good morning, {}'.format(receiver)
-			day += 1
-		if day == self.now.day and 12 <= hour < 17:
-			result = 'Good afternoon, {}'.format(receiver)
-			day += 1
-		if day == self.now.day and 17 <= hour < 23:
-			result = 'Good evening, {}'.format(receiver)
-			day += 1
-		if day == self.now.day and (23 <= hour or 0 <= hour < 6):
-			result = 'Good night, {}'.format(receiver)
-			day += 1
-		if day > self.now.day:
-			result = 'Hello again.'
-		return result
+	@staticmethod
+	def get_greeting(receiver, hour):
+		result = 'Good '
+		if 6 <= hour < 12:
+			result += 'morning'
+		elif 12 <= hour < 17:
+			result += 'afternoon'
+		elif 17 <= hour < 23:
+			result += 'evening'
+		else:
+			result += 'night'
+		return result + ', {}'.format(receiver)
 	
 	def listen(self):
 		new_offset = None
 		today = self.now.day
 		hour = self.now.hour
-		while True:
+		listening = True
+		while listening:
 			self.get_updates(new_offset)
 			last_update = self.get_last_update()
 			if last_update:
@@ -75,12 +71,15 @@ class Bot:
 				last_chat_name = last_update['message']['chat']['first_name']
 				
 				if self.is_greeting(last_chat_text.lower()):
-					data = {
-						'receiver': last_chat_name,
-						'day': today,
-						'hour': hour
-					}
-					message = self.get_greeting(**data)
+					if today == self.now.day:
+						data = {
+							'receiver': last_chat_name,
+							'hour': hour
+						}
+						message = self.get_greeting(**data)
+						today += 1
+					else:
+						message = 'Hi again.'
 				else:
 					message = 'Sorry, I was created only for greetings.\nSay '
 					for i in range(len(self.greetings) - 1):
