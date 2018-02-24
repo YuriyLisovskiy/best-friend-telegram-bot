@@ -1,5 +1,5 @@
+from bot.settings import *
 from bot.telegram_bot import Bot
-from bot.settings.settings import *
 
 
 if __name__ == '__main__':
