@@ -1,6 +1,8 @@
 import requests
 import datetime
 
+from bot.utils.decorators import run_async
+
 
 class Bot:
 	
@@ -9,7 +11,9 @@ class Bot:
 		self.api_url = "https://api.telegram.org/bot{}/".format(token)
 		self.greetings = ('hello', 'hi', 'greetings')
 		self.now = datetime.datetime.now()
+		self.today = self.now.day
 		self.start_message = 'Telegram Bot\nVersion 1.0.0\nStarted listening for updates...'
+		self.welcomed_users = []
 	
 	def get_updates(self, offset=None, timeout=30):
 		method = 'getUpdates'
@@ -43,8 +47,9 @@ class Bot:
 			last_update = None
 		return last_update
 	
-	def is_greeting(self, string):
-		return any(word in string for word in self.greetings)
+	@staticmethod
+	def check_received_message(string, data_list):
+		return any(word in string for word in data_list)
 	
 	@staticmethod
 	def get_greeting(receiver, hour):
@@ -59,11 +64,18 @@ class Bot:
 			result += 'night'
 		return result + ', {}'.format(receiver)
 	
+	@run_async
+	def control_datetime(self):
+		while True:
+			if self.today != self.now.day:
+				self.today = self.now.day
+				self.welcomed_users.clear()
+			self.now = datetime.datetime.now()
+	
 	def listen(self):
 		new_offset = None
-		today = self.now.day
-		hour = self.now.hour
 		listening = True
+		self.control_datetime()
 		print(self.start_message)
 		while listening:
 			self.get_updates(new_offset)
@@ -74,14 +86,14 @@ class Bot:
 				last_chat_id = last_update['message']['chat']['id']
 				last_chat_name = last_update['message']['chat']['first_name']
 				
-				if self.is_greeting(last_chat_text.lower()):
-					if today == self.now.day:
+				if self.check_received_message(last_chat_text.lower(), self.greetings):
+					if last_chat_id not in self.welcomed_users:
+						self.welcomed_users.append(last_chat_id)
 						data = {
 							'receiver': last_chat_name,
-							'hour': hour
+							'hour': self.now.hour
 						}
 						message = self.get_greeting(**data)
-						today += 1
 					else:
 						message = 'Hi again.'
 				else:
@@ -91,4 +103,5 @@ class Bot:
 					message += 'or "' + self.greetings[-1] + '".'
 					
 				self.send_message(last_chat_id, message)
+				self.send_message(last_chat_id, self.now)
 				new_offset = last_update_id + 1
