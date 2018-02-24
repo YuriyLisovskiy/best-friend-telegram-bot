@@ -18,6 +18,8 @@ class Bot:
 			'offset': offset
 		}
 		response = requests.get(self.api_url + method, params)
+		if not response.json()['ok']:
+			raise ValueError("Bot not found or invalid bot token.")
 		return response.json()['result']
 	
 	def send_message(self, chat_id, text):
