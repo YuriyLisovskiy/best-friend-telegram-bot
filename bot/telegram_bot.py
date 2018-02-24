@@ -9,6 +9,7 @@ class Bot:
 		self.api_url = "https://api.telegram.org/bot{}/".format(token)
 		self.greetings = ('hello', 'hi', 'greetings')
 		self.now = datetime.datetime.now()
+		self.start_message = 'Telegram Bot\nVersion 1.0.0\nStarted listening for updates...'
 	
 	def get_updates(self, offset=None, timeout=30):
 		method = 'getUpdates'
@@ -61,6 +62,7 @@ class Bot:
 		today = self.now.day
 		hour = self.now.hour
 		listening = True
+		print(self.start_message)
 		while listening:
 			self.get_updates(new_offset)
 			last_update = self.get_last_update()
