@@ -64,6 +64,14 @@ class Bot:
 			result += 'night'
 		return result + ', {}'.format(receiver)
 	
+	@staticmethod
+	def parse_message(last_update):
+		if 'text' in last_update['message'].keys():
+			result = last_update['message']['text']
+		else:
+			result = None
+		return result
+	
 	@run_async
 	def control_datetime(self):
 		while True:
@@ -82,26 +90,26 @@ class Bot:
 			last_update = self.get_last_update()
 			if last_update:
 				last_update_id = last_update['update_id']
-				last_chat_text = last_update['message']['text']
 				last_chat_id = last_update['message']['chat']['id']
 				last_chat_name = last_update['message']['chat']['first_name']
-				
-				if self.check_received_message(last_chat_text.lower(), self.greetings):
-					if last_chat_id not in self.welcomed_users:
-						self.welcomed_users.append(last_chat_id)
-						data = {
-							'receiver': last_chat_name,
-							'hour': self.now.hour
-						}
-						message = self.get_greeting(**data)
+				last_chat_text = self.parse_message(last_update)
+				if last_chat_text:
+					if self.check_received_message(last_chat_text.lower(), self.greetings):
+						if last_chat_id not in self.welcomed_users:
+							self.welcomed_users.append(last_chat_id)
+							data = {
+								'receiver': last_chat_name,
+								'hour': self.now.hour
+							}
+							message = self.get_greeting(**data)
+						else:
+							message = 'Hi again.'
 					else:
-						message = 'Hi again.'
+						message = 'Sorry, I was created only for greetings.\nSay '
+						for i in range(len(self.greetings) - 1):
+							message += '"' + self.greetings[i] + '", '
+						message += 'or "' + self.greetings[-1] + '".'
 				else:
-					message = 'Sorry, I was created only for greetings.\nSay '
-					for i in range(len(self.greetings) - 1):
-						message += '"' + self.greetings[i] + '", '
-					message += 'or "' + self.greetings[-1] + '".'
-					
+					message = 'Sorry, I can parse only text messages.'
 				self.send_message(last_chat_id, message)
-				self.send_message(last_chat_id, self.now)
 				new_offset = last_update_id + 1
