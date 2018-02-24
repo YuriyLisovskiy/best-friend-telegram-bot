@@ -25,7 +25,7 @@ $ pip install -r requirements.txt
     from bot.telegram_bot import Bot 
     ```
 - Using [introduction to bots](https://core.telegram.org/bots) create bot and get it's token.
-- Create `local_settings.py` file in `bor/settings` folder and add `TOKEN` variable there, example:
+- Create `local_settings.py` file in `bor` folder and add `TOKEN` variable there, example:
     ```python 
     TOKEN = 'bot_token_here' 
     ```
