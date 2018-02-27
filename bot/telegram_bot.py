@@ -1,6 +1,8 @@
+import random
 import requests
 import datetime
 
+from bot.utils.answers import *
 from bot.utils.decorators import run_async
 
 
@@ -9,7 +11,6 @@ class Bot:
 	def __init__(self, token):
 		self.token = token
 		self.api_url = "https://api.telegram.org/bot{}/".format(token)
-		self.greetings = ('hello', 'hi', 'greetings')
 		self.now = datetime.datetime.now()
 		self.today = self.now.day
 		self.start_message = 'Telegram Bot\nVersion 1.0.0\nStarted listening for updates...'
@@ -94,7 +95,7 @@ class Bot:
 				last_chat_name = last_update['message']['chat']['first_name']
 				last_chat_text = self.parse_message(last_update)
 				if last_chat_text:
-					if self.check_received_message(last_chat_text.lower(), self.greetings):
+					if self.check_received_message(last_chat_text.lower(), GREETINGS):
 						if last_chat_id not in self.welcomed_users:
 							self.welcomed_users.append(last_chat_id)
 							data = {
@@ -105,11 +106,8 @@ class Bot:
 						else:
 							message = 'Hi again.'
 					else:
-						message = 'Sorry, I was created only for greetings.\nSay '
-						for i in range(len(self.greetings) - 1):
-							message += '"' + self.greetings[i] + '", '
-						message += 'or "' + self.greetings[-1] + '".'
+						message = random.choice(RANDOM_ANSWERS)
 				else:
-					message = 'Sorry, I can parse only text messages.'
+					message = random.choice(INVALID_MESSAGE_ANSWER)
 				self.send_message(last_chat_id, message)
 				new_offset = last_update_id + 1
