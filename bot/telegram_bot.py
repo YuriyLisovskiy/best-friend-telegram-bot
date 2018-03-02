@@ -15,6 +15,8 @@ class Bot:
 		self.today = self.now.day
 		self.start_message = 'Telegram Bot\nVersion 1.0.0\nStarted listening for updates...'
 		self.welcomed_users = []
+		self.serving_users = []
+		self.last_update = None
 	
 	def get_updates(self, offset=None, timeout=30):
 		method = 'getUpdates'
@@ -27,7 +29,7 @@ class Bot:
 			raise ValueError("Bot not found or invalid bot token.")
 		return response.json()['result']
 	
-	def send_message(self, chat_id, text):
+	def send_message(self, chat_id, username, text):
 		method = 'sendMessage'
 		params = {
 			'chat_id': chat_id,
@@ -35,9 +37,9 @@ class Bot:
 		}
 		response = requests.post(self.api_url + method, params)
 		if response.json()['ok']:
-			print("Response status: sent")
+			print("Response sent, receiver: @{}, time: {}".format(username, datetime.datetime.now()))
 		else:
-			print("Response status: failed")
+			print("Response failed, receiver: @{}, time: {}".format(username, datetime.datetime.now()))
 		return response
 	
 	def get_last_update(self):
@@ -73,6 +75,10 @@ class Bot:
 			result = None
 		return result
 	
+	@staticmethod
+	def is_message(last_update):
+		return 'message' in last_update
+	
 	@run_async
 	def control_datetime(self):
 		while True:
@@ -80,6 +86,38 @@ class Bot:
 				self.today = self.now.day
 				self.welcomed_users.clear()
 			self.now = datetime.datetime.now()
+	
+	@run_async
+	def start_serve_user(self, chat_id):
+		while True:
+			if self.last_update:
+				if self.is_message(self.last_update):
+					last_chat_id = self.last_update['message']['chat']['id']
+					if chat_id == last_chat_id:
+						last_chat_name = self.last_update['message']['chat']['first_name']
+						last_chat_text = self.parse_message(self.last_update)
+						if last_chat_text:
+							if self.check_received_message(last_chat_text.lower(), GREETINGS):
+								if last_chat_id not in self.welcomed_users:
+									self.welcomed_users.append(last_chat_id)
+									data = {
+										'receiver': last_chat_name,
+										'hour': self.now.hour
+									}
+									message = self.get_greeting(**data)
+								else:
+									message = 'Hi again.'
+							else:
+								answers = RANDOM_ANSWERS
+								if '?' not in last_chat_text and last_chat_text != '?':
+									answers.append(POSITIVE_ANSWERS + NEGATIVE_ANSWERS + NEUTRAL_ANSWERS)
+								elif last_chat_text == '?':
+									answers = ['What do you mean by sending me a question mark, {} ?'.format(last_chat_name)]
+								message = random.choice(answers)
+						else:
+							message = random.choice(INVALID_MESSAGE_ANSWER)
+						self.send_message(last_chat_id, self.last_update['message']['chat']['username'], message)
+				self.last_update = None
 	
 	def listen(self):
 		new_offset = None
@@ -90,24 +128,11 @@ class Bot:
 			self.get_updates(new_offset)
 			last_update = self.get_last_update()
 			if last_update:
+				self.last_update = last_update
 				last_update_id = last_update['update_id']
-				last_chat_id = last_update['message']['chat']['id']
-				last_chat_name = last_update['message']['chat']['first_name']
-				last_chat_text = self.parse_message(last_update)
-				if last_chat_text:
-					if self.check_received_message(last_chat_text.lower(), GREETINGS):
-						if last_chat_id not in self.welcomed_users:
-							self.welcomed_users.append(last_chat_id)
-							data = {
-								'receiver': last_chat_name,
-								'hour': self.now.hour
-							}
-							message = self.get_greeting(**data)
-						else:
-							message = 'Hi again.'
-					else:
-						message = random.choice(RANDOM_ANSWERS)
-				else:
-					message = random.choice(INVALID_MESSAGE_ANSWER)
-				self.send_message(last_chat_id, message)
+				if self.is_message(self.last_update):
+					last_chat_id = self.last_update['message']['chat']['id']
+					if last_chat_id not in self.serving_users:
+						self.serving_users.append(last_chat_id)
+						self.start_serve_user(last_chat_id)
 				new_offset = last_update_id + 1
