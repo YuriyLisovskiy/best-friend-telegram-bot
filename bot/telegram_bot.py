@@ -89,14 +89,18 @@ class Bot:
 	
 	@run_async
 	def start_serve_user(self, chat_id):
+		last_update, temp_update = None, None
 		while True:
-			if self.last_update:
-				if self.is_message(self.last_update):
-					last_chat_id = self.last_update['message']['chat']['id']
+			temp_update = self.last_update
+			if last_update != temp_update:
+				last_update = temp_update
+				if self.is_message(last_update):
+					last_chat_id = last_update['message']['chat']['id']
 					if chat_id == last_chat_id:
-						last_chat_name = self.last_update['message']['chat']['first_name']
-						last_chat_text = self.parse_message(self.last_update)
+						last_chat_name = last_update['message']['chat']['first_name']
+						last_chat_text = self.parse_message(last_update)
 						if last_chat_text:
+							print(last_chat_text)
 							if self.check_received_message(last_chat_text.lower(), GREETINGS):
 								if last_chat_id not in self.welcomed_users:
 									self.welcomed_users.append(last_chat_id)
@@ -116,8 +120,7 @@ class Bot:
 								message = random.choice(answers)
 						else:
 							message = random.choice(INVALID_MESSAGE_ANSWER)
-						self.send_message(last_chat_id, self.last_update['message']['chat']['username'], message)
-				self.last_update = None
+						self.send_message(last_chat_id, last_update['message']['chat']['username'], message)
 	
 	def listen(self):
 		new_offset = None
@@ -126,10 +129,9 @@ class Bot:
 		print(self.start_message)
 		while listening:
 			self.get_updates(new_offset)
-			last_update = self.get_last_update()
-			if last_update:
-				self.last_update = last_update
-				last_update_id = last_update['update_id']
+			self.last_update = self.get_last_update()
+			if self.last_update:
+				last_update_id = self.last_update['update_id']
 				if self.is_message(self.last_update):
 					last_chat_id = self.last_update['message']['chat']['id']
 					if last_chat_id not in self.serving_users:
