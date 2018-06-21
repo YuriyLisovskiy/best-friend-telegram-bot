@@ -4,6 +4,7 @@ import datetime
 
 from bot.utils.answers import *
 from bot.utils.decorators import run_async
+from bot.utils.text_converter import convert_text
 
 
 class Bot:
@@ -78,7 +79,11 @@ class Bot:
 	@staticmethod
 	def is_message(last_update):
 		return 'message' in last_update
-
+	
+	@staticmethod
+	def is_command(text):
+		return len(text) > 0 and text[0] == '/'
+	
 	@run_async
 	def control_datetime(self):
 		while True:
@@ -89,7 +94,7 @@ class Bot:
 
 	@run_async
 	def start_serve_user(self, chat_id):
-		last_update_id = last_update_id = self.last_update['update_id'] - 1
+		last_update_id = self.last_update['update_id'] - 1
 		while True:
 			if self.last_update and last_update_id < self.last_update['update_id']:
 					last_update_id = self.last_update['update_id']
@@ -99,24 +104,30 @@ class Bot:
 							last_chat_name = self.last_update['message']['chat']['first_name']
 							last_chat_text = self.parse_message(self.last_update)
 							if last_chat_text:
-								print(last_chat_text)
-								if self.check_received_message(last_chat_text.lower(), GREETINGS):
-									if last_chat_id not in self.welcomed_users:
-										self.welcomed_users.append(last_chat_id)
-										data = {
-											'receiver': last_chat_name,
-											'hour': self.now.hour
-										}
-										message = self.get_greeting(**data)
+								if self.is_command(last_chat_text):
+									if '/convert ' in last_chat_text:
+										message = convert_text(last_chat_text.replace('/convert ', ''))
 									else:
-										message = 'Hi again.'
+										message = random.choice(INVALID_MESSAGE_ANSWER)
 								else:
-									answers = RANDOM_ANSWERS
-									if '?' in last_chat_text and last_chat_text != '?':
-										answers.append(POSITIVE_ANSWERS + NEGATIVE_ANSWERS + NEUTRAL_ANSWERS)
-									elif last_chat_text == '?':
-										answers = ['What do you mean by sending me a question mark, {} ?'.format(last_chat_name)]
-									message = random.choice(answers)
+									print(last_chat_text)
+									if self.check_received_message(last_chat_text.lower(), GREETINGS):
+										if last_chat_id not in self.welcomed_users:
+											self.welcomed_users.append(last_chat_id)
+											data = {
+												'receiver': last_chat_name,
+												'hour': self.now.hour
+											}
+											message = self.get_greeting(**data)
+										else:
+											message = 'Hi again.'
+									else:
+										answers = RANDOM_ANSWERS
+										if '?' in last_chat_text and last_chat_text != '?':
+											answers.append(POSITIVE_ANSWERS + NEGATIVE_ANSWERS + NEUTRAL_ANSWERS)
+										elif last_chat_text == '?':
+											answers = ['What do you mean by sending me a question mark, {} ?'.format(last_chat_name)]
+										message = random.choice(answers)
 							else:
 								message = random.choice(INVALID_MESSAGE_ANSWER)
 							self.send_message(last_chat_id, self.last_update['message']['chat']['username'], message)
